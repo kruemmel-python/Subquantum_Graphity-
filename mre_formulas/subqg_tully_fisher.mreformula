@@ -1,0 +1,5 @@
+MRE_FORMULA_1
+name: SubQG Tully-Fisher 4-Potenz-Skalierung
+domain: real
+formula: (x^2)^2 = x^4
+seed: 42

@@ -1,0 +1,5 @@
+MRE_FORMULA_1
+name: SubQG Metrische Kontraktion
+domain: real
+formula: x * (1 - y) = x - x*y
+seed: 42

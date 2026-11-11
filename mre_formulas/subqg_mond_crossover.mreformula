@@ -1,0 +1,5 @@
+MRE_FORMULA_1
+name: SubQG MOND Crossover Identitaet
+domain: real
+formula: x * (x / (x + y)) = x^2 / (x + y)
+seed: 42
