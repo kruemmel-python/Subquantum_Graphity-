@@ -1,0 +1,8 @@
+MRE_FORMULA_1
+# SubQG Viererimpuls-Invarianz: Relativistische Energie-Impuls-Erhaltung
+# x = Lichtartiger Vorwaertsimpuls, y = Raumartiger Rueckwaertsimpuls
+# Physikalische Bedeutung: Erhaltung von E^2 - p^2*c^2 auf dem dynamischen Graphen
+name: SubQG Viererimpuls-Invarianz
+domain: real
+formula: (x^2 + y^2)^2 - (2*x*y)^2 = (x^2 - y^2)^2
+seed: 42
