@@ -1,0 +1,7 @@
+MRE_FORMULA_1
+# SubQG Lieb-Robinson-Schranke: Invarianz der emergenten Signalgeschwindigkeit c = l0 * omega
+# x = Graphenkantenlaenge (l0), y = effektive Schwingungsfrequenz (omega)
+name: SubQG Universelle Signalgeschwindigkeit
+domain: real
+formula: (x * y)^2 = x^2 * y^2
+seed: 42

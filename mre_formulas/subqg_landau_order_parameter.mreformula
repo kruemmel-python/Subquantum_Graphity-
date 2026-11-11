@@ -1,0 +1,7 @@
+MRE_FORMULA_1
+# SubQG Landau-Nukleationspotential: Symmetriebedingung der quadratisch-quartischen Form
+# x = quadratische Amplitude (Delta^2), y = Quartischer Kopplungsterm
+name: SubQG Landau-Ordnungsparameter Symmetrie
+domain: real
+formula: (x + y)^2 - 2*x*y = x^2 + y^2
+seed: 42

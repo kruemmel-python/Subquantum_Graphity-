@@ -1,5 +1,7 @@
 MRE_FORMULA_1
-name: SubQG MOND Crossover Identitaet
+# SubQG MOND-Crossover: Nichtlineare Leitfaehigkeits-Identitaet des Graphennetzwerks
+# x = effektive Beschleunigung (g_eff), y = kosmologische Skala (a0)
+name: SubQG MOND-Crossover Leitfaehigkeit
 domain: real
 formula: x * (x / (x + y)) = x^2 / (x + y)
 seed: 42

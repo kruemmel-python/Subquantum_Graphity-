@@ -1,5 +1,7 @@
 MRE_FORMULA_1
-name: SubQG Tully-Fisher 4-Potenz-Skalierung
+# SubQG Tully-Fisher-Relation: Asymptotische Rotationsgeschwindigkeit v_flat^4 = G * M * a0
+# x = Rotationsgeschwindigkeit (v_flat), Skalierungs-Identitaet der 4. Potenz
+name: SubQG Tully-Fisher 4-Potenz-Gesetz
 domain: real
 formula: (x^2)^2 = x^4
 seed: 42
