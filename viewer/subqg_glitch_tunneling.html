@@ -245,16 +245,16 @@
       <span class="metric-val gold" id="hud-eps">0.000 rad (Orthogonal)</span>
     </div>
     <div class="metric-row">
-      <span class="metric-label">Transiente Kopplung w_AB:</span>
-      <span class="metric-val" id="hud-wab">0.0000 (Isoliert)</span>
+      <span class="metric-label">Kopplung w_AB = sin²(&epsilon;):</span>
+      <span class="metric-val" id="hud-wab">0.00000 (Exakt Null)</span>
     </div>
     <div class="metric-row">
       <span class="metric-label">Status Welt A (Cyan Raum):</span>
       <span class="metric-val cyan" id="hud-status">Ungestoerter Grundzustand</span>
     </div>
     <div class="metric-row">
-      <span class="metric-label">Fremdmasse Welt B (Magenta):</span>
-      <span class="metric-val" id="hud-mass-b">Unsichtbar am selben Ort</span>
+      <span class="metric-label">Gesamtnorm N_A + N_B:</span>
+      <span class="metric-val cyan" id="hud-norm">100.000% (Konstant)</span>
     </div>
     <div class="metric-row">
       <span class="metric-label">Kreuz-Gravitationsimpuls:</span>
@@ -490,6 +490,7 @@
     const hudEps = document.getElementById('hud-eps');
     const hudWab = document.getElementById('hud-wab');
     const hudStatus = document.getElementById('hud-status');
+    const hudNorm = document.getElementById('hud-norm');
     const hudForce = document.getElementById('hud-force');
     const hudEnergy = document.getElementById('hud-energy');
     const statusDot = document.getElementById('status-dot');
@@ -589,23 +590,27 @@
       hudEps.textContent = `${glitchState.epsilon.toFixed(4)} rad`;
       hudWab.textContent = glitchState.wAB.toFixed(5);
 
-      if (glitchState.wAB > 0.01) {
+      if (glitchState.wAB > 0.001) {
         statusDot.style.background = '#f43f5e';
         statusDot.style.boxShadow = '0 0 15px #f43f5e';
         hudStatus.textContent = 'WARNUNG: Orthogonalität kollabiert!';
         hudStatus.className = 'metric-val alert';
 
+        // Reale Norm-Übertragung von B nach A unter Erhaltung der Gesamtnorm N_total = N_A + N_B
+        const transferredRatio = Math.min(0.25, glitchState.wAB * 1.25);
+        hudNorm.textContent = `100.000% (Transfer: ${(transferredRatio*100).toFixed(2)}%)`;
+
         const gShock = glitchState.wAB * 0.185;
         hudForce.textContent = `${gShock.toFixed(5)} J₀/L₀ (EXTREM)`;
         hudEnergy.textContent = `${(glitchState.wAB * 2.8).toFixed(4)} (Lichtblitz)`;
 
-        narrativeText.innerHTML = `💥 <strong>PHASEN-GLITCH AKTIV!</strong> &Delta;&theta; kollabiert auf ${(Math.PI/2 - glitchState.epsilon).toFixed(3)} rad! Die Gravitation der fremden Welt schlägt mit ${gShock.toFixed(4)} J₀/L₀ in Welt A ein!`;
+        narrativeText.innerHTML = `💥 <strong>EXAKTER PHASEN-GLITCH AKTIV!</strong> w_AB = sin²(&epsilon;) = ${glitchState.wAB.toFixed(4)} > 0! Gesamtnorm N_A + N_B bleibt exakt erhalten, während fremde Gravitation (${gShock.toFixed(4)} J₀/L₀) einschlägt!`;
 
         // Die fremde Masse wird plötzlich voll sichtbar und glüht grell auf!
-        ghostMat.opacity = Math.min(0.95, glitchState.wAB * 3.2);
-        ghostMat.emissiveIntensity = 1.0 + glitchState.wAB * 4.0;
-        ringMat.opacity = Math.min(0.85, glitchState.wAB * 2.5);
-        shockLight.intensity = glitchState.wAB * 12.0;
+        ghostMat.opacity = Math.min(0.95, glitchState.wAB * 4.2);
+        ghostMat.emissiveIntensity = 1.0 + glitchState.wAB * 5.0;
+        ringMat.opacity = Math.min(0.85, glitchState.wAB * 3.5);
+        shockLight.intensity = glitchState.wAB * 14.0;
 
         // Gravitations-Ruck: Der Testkörper in Welt A wird abrupt ins Zentrum gerissen!
         testObjGroup.position.x += 18.0 * glitchState.wAB * delta;
@@ -616,12 +621,13 @@
         statusDot.style.boxShadow = '0 0 10px #22c55e';
         hudStatus.textContent = 'Ungestoerter Grundzustand';
         hudStatus.className = 'metric-val cyan';
+        hudNorm.textContent = '100.000% (Konstant)';
         hudForce.textContent = '0.00000 J₀/L₀';
         hudEnergy.textContent = '0.00000';
 
-        ghostMat.opacity = 0.06;
-        ghostMat.emissiveIntensity = 0.2;
-        ringMat.opacity = 0.04;
+        ghostMat.opacity = 0.04;
+        ghostMat.emissiveIntensity = 0.15;
+        ringMat.opacity = 0.02;
         shockLight.intensity = 0.0;
 
         // Elastische Rückstellung des Testkörpers (Graphen-Trägheit)
@@ -629,7 +635,7 @@
         testObjGroup.rotation.y += 0.8 * delta;
 
         if (!glitchState.active) {
-          narrativeText.textContent = 'Status: Orthogonal entkoppelt (⟨A|B⟩ = 0). Welt A und Welt B teilen denselben Ort in völliger Stille. Klicke auf "Phasen-Glitch Ausloesen".';
+          narrativeText.textContent = 'Status: Orthogonal entkoppelt (w_AB = sin²(0) ≡ 0). Beide Welten teilen denselben Ort in absoluter Isolation. Klicke auf "Phasen-Glitch Ausloesen".';
         }
       }
 
