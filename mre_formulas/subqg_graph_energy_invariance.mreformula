@@ -1,5 +1,0 @@
-MRE_FORMULA_1
-name: SubQG Phasen-Energie-Invariante
-domain: real
-formula: (x + y) * (x - y) = x^2 - y^2
-seed: 42

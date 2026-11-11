@@ -1,7 +1,0 @@
-MRE_FORMULA_1
-# SubQG Energie-Impuls-Dispersionsinvariante auf dem dynamischen Graphen
-# x = Vorwaertswellenvektor, y = Rueckwaertswellenvektor (hyperbolische Invarianz)
-name: SubQG Hyperbolische Graphen-Dispersion
-domain: real
-formula: (x + y) * (x - y) = x^2 - y^2
-seed: 42

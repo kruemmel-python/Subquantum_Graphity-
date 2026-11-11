@@ -1,5 +1,0 @@
-MRE_FORMULA_1
-name: SubQG Signalgeschwindigkeits-Invariante
-domain: real
-formula: (x * y)^2 = x^2 * y^2
-seed: 42

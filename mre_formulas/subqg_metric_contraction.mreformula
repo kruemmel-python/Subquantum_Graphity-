@@ -1,7 +1,0 @@
-MRE_FORMULA_1
-# SubQG Metrische Rueckkopplung: Kontraktion der Kantenlaenge durch lokale Energiedichte
-# x = Ruhekantenlaenge (l0), y = normalisierte Energiedichte (chi * rho / kappa)
-name: SubQG Metrische Kantenkontraktion
-domain: real
-formula: x * (1 - y) = x - x*y
-seed: 42
