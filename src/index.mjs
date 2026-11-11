@@ -39,6 +39,12 @@ export { SubQGMultiversePhaseEngine } from './modules/subqg_multiverse_phases.mj
 export { SubQGGraphCoupledEngine } from './modules/subqg_graph_coupled_gravity.mjs';
 export { SubQGEmergentGravity } from './modules/subqg_emergent_gravity_darkmatter.mjs';
 export { SubQGFirstPrinciplesEngine } from './modules/subqg_first_principles_gravity.mjs';
+export {
+  SubQGAppleWorld,
+  SubQGAppleExperiment,
+  executeAppleExperimentSuite,
+  DEFAULT_APPLE_OBJECTS
+} from './modules/subqg_apple_experiment.mjs';
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,9 +62,22 @@ Version: 1.0.0 | Environment: Node.js ${process.version}
 
   const args = process.argv.slice(2);
   const isAudit = args.includes('--audit');
-  const isDemo = args.includes('--demo') || !isAudit;
+  const isApple = args.includes('--apple');
+  const isDemo = args.includes('--demo') || (!isAudit && !isApple);
 
-  if (isAudit) {
+  if (isApple) {
+    console.log('[*] Executing SubQG Apple Experiment (Inertia, Weight & Universal Free Fall)...');
+    import('./modules/subqg_apple_experiment.mjs').then(({ executeAppleExperimentSuite }) => {
+      const res = executeAppleExperimentSuite();
+      console.log(`[+] All 6 Blueprint Gates Passed: ${res.allGatesPassed}`);
+      console.log(`[+] Inertial Mass Span: ${res.calibration.massSpanRatio.toFixed(2)}x (Linearity Error: ${(res.calibration.maxLinearityError * 100).toFixed(3)}%)`);
+      console.log(`[+] Free-Fall Universality Spread (eta): ${(res.stationaryMode.maxEta * 100).toFixed(4)}%`);
+      console.log(`[+] Weight vs Mass Regression R^2: ${res.stationaryMode.weightRegression.rSquared.toFixed(6)}`);
+      console.log(`[+] Equivalence Consistency |F_hold/m - a_free|/|a_free|: ${(res.stationaryMode.maxEquivalenceError * 100).toFixed(3)}%`);
+      console.log(`[+] All 10 Control Runs (C1-C10) Passed: ${res.controlSuite.allControlsPassed}`);
+      console.log('========================================================================\n');
+    });
+  } else if (isAudit) {
     console.log('[*] Running SubQG 1.0 Unified Proof Engine Verification...');
     import('./modules/subqg_unified_proof_engine.mjs').then(({ SubQGUnifiedProofEngine }) => {
       const engine = new SubQGUnifiedProofEngine({ G: 1.0, boxSize: 20.0 });

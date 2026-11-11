@@ -135,3 +135,27 @@ export class CausalWaveWorld extends WaveWorld {}
 export class EmergenceWorld {
   constructor(options?: any);
 }
+
+export class SubQGAppleWorld {
+  constructor(config?: Record<string, any>);
+  solveVariationalMetric(opts?: Record<string, any>): any;
+  measureObservables(psiRe: Float64Array, psiIm: Float64Array, phiMetric: Float64Array, edgeFieldEnergy?: number): any;
+  simulatePacketTrajectory(opts: Record<string, any>): any;
+}
+
+export class SubQGAppleExperiment {
+  constructor(config?: Record<string, any>);
+  runInertialCalibration(): any;
+  runCoreGravityAndHolding(calibration: any, backgroundMode?: 'stationaryMetric' | 'coupledMetric'): any;
+  runHandForceLimitExperiment(calibration: any): any;
+  runControlSuite(calibration: any, primaryResults: any): any;
+}
+
+export function executeAppleExperimentSuite(config?: Record<string, any>): any;
+export const DEFAULT_APPLE_OBJECTS: ReadonlyArray<{
+  id: string;
+  label: string;
+  amplitude: number;
+  sigma: number;
+  color: string;
+}>;
