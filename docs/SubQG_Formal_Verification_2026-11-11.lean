@@ -102,6 +102,10 @@ theorem formula19_cross_force_counterexample :
   refine ⟨-10, -10, ?_⟩
   norm_num
 
+theorem formula20_transient_tunneling_invariance (x y : ℝ) :
+    (x + y)^2 - 2 * (x^2 + y^2) + (x - y)^2 = 0 := by
+  ring
+
 -- Additional noncanonical formulas that are not exact duplicates of 01--19.
 
 theorem extra_binomial (x y : ℝ) :
@@ -136,6 +140,7 @@ theorem extra_mond_crossover
 #print axioms formula17_refractive_invariance
 #print axioms formula18_orthogonal_decoupling
 #print axioms formula19_cross_force_counterexample
+#print axioms formula20_transient_tunneling_invariance
 #print axioms extra_binomial
 #print axioms extra_graph_dispersion
 #print axioms extra_mond_crossover

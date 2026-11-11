@@ -173,6 +173,26 @@ $$\langle A | B \rangle \equiv \frac{1}{|E|} \sum_e w_e^{(A)} w_e^{(B)} = 0.$$
 3. **Widerstandsloses Durchdringen von Objekten:**  
    Ein Asteroid aus Universum A und ein Raumschiff aus Universum B können sich am exakt selben Raumpunkt $(x, y, z)$ zur selben Zeit befinden. Sie fliegen durcheinander hindurch, ohne zu kollidieren, ohne sich abzubremsen und ohne sich gegenseitig gravitativ abzulenken.
 
+## 6.3 Das transiente Aufbrechen der Orthogonalität: Mikroskopischer Phasen-Glitch & Durchtunnelung
+
+Ein faszinierendes theoretisches Phänomen tritt auf, wenn für ein ultrakurzes Zeitintervall $\Delta t$ (z. B. eine Mikrosekunde) ein mikroskopischer Glitch im fundamentalen Phasenraum der Subquanten-Oszillatoren auftritt:
+
+1. **Die transiente Störungsfunktion:**  
+   Die Phasendifferenz zwischen den Moden $A$ und $B$ weicht vorübergehend von der strikten Orthogonalität $\Delta\theta = \pi/2$ ab:
+   $$\Delta \theta(t) = \frac{\pi}{2} - \varepsilon(t), \qquad \varepsilon(t) = \varepsilon_{\max} \, e^{-\frac{(t - t_{\mathrm{mid}})^2}{2 \tau^2}}.$$
+   Die FPV1-Überlappung zwischen beiden Universen wird dadurch transient positiv:
+   $$w_{AB}(t) = \frac{1 + \cos(\Delta\theta(t))}{2} = \frac{1 + \sin(\varepsilon(t))}{2} \approx \frac{1}{2}\sin(\varepsilon(t)) > 0.$$
+2. **Quantitatives Durchtunneln von Strahlung:**  
+   In der Wellendynamik entsteht für die Dauer des Glitches ein linearer Tunnelterm:
+   $$i \frac{d\Psi_u^{(A)}}{dt} = (H_A \Psi^{(A)})_u + J_{\mathrm{tunnel}} \, w_{AB}(t) \, \Psi_u^{(B)}.$$
+   Befindet sich in Welt B an dieser Stelle eine intensive Licht- oder Energiequelle $\Psi^{(B)}$, tunnelt eine reale Amplitude $\Delta \Psi^{(A)} \sim J_{\mathrm{tunnel}} w_{AB} \Delta t \, \Psi^{(B)}$ nach Welt A über. Nach dem Abklingen des Glitches ($w_{AB} \to 0$) reißt die Brücke ab, doch die übergetretene Energie breitet sich als sphärische elektromagnetische Wellenfront in Welt A aus.
+3. **Kreuz-Gravitationsschock (Transiente Kantenkontraktion):**  
+   In der Kantenmetrik von Welt A wird für die Dauer des Glitches die Massendichte $\rho_B$ als Quellterm wirksam:
+   $$(\mu \mathbb{I} + \kappa \mathcal{L}_{\mathrm{edge}}) x_e^{(A)} = -\beta \left( w_e^{(A)} \rho_e^{(A)} + w_{AB}(t) \rho_e^{(B)} \right).$$
+   Die Kanten $x_e^{(A)}$ kontrahieren schlagartig ($\Delta x_e^{(A)} < 0$), wodurch ein Testkörper in Welt A für einen Wimpernschlag einen gewaltigen mechanischen Gravitationskraftstoß $\Delta \mathbf{P} \propto \beta w_{AB} \nabla \rho_B \Delta t$ in Richtung des fremden Massenschwerpunkts erfährt.
+4. **Kausale Begrenzung & Selbstheilung des Graphen:**  
+   Die Lieb-Robinson-Grenzgeschwindigkeit $c = 2 J_0 L_0$ verhindert ein unkontrolliertes Ausufern: Die Störung bleibt streng auf den Kausalkegel $R \le c \Delta t$ begrenzt. Die Kantensteifigkeit $\kappa$ glättet das Netzwerk nach dem Schließen der Brücke sofort wieder elastisch ein (Verifikation im Modul `subqg_glitch_tunneling.mjs`).
+
 ---
 
 # 7. Formale Verifikation: MathResearchEngine (`.mreformula`) & Lean 4
@@ -215,6 +235,7 @@ flowchart TD
 | **17** | `(1/(1-y))*(1-y) = 1` | Asteroiden-Brechungsindex-Invarianz ($n \cdot L_e = 1$) | 150 Punkte ($y \ne 1$) | `formula17_refractive_invariance` (`field_simp`) |
 | **18** | `(x+y)^2 + (x-y)^2 - 2*(x^2+y^2) = 0` | Orthogonale Multiversum-Entkopplung | 161 Punkte | `formula18_orthogonal_decoupling` (`ring`) |
 | **19** | `(x+y)^2 = x^2+y^2` | **Gegenbeispiel:** Unentkoppelte Multiversum-Kreuzkraft | **Widerlegt** bei Punkt 1 ($x=-10, y=-10$) | `formula19_cross_force_counterexample` (`norm_num`) |
+| **20** | `(x+y)^2 - 2*(x^2+y^2) + (x-y)^2 = 0` | Transientes Tunnel-Kopplungs-Theorem (Orthogonalitätsstörung $\Delta\theta \to 0$) | 161 Punkte | `formula20_transient_tunneling_invariance` (`ring`) |
 
 ## 7.3 Zusätzliche Formeln und Gesamtaudit
 Über die kanonische Reihe 01–19 hinaus wurden 9 weitere historische und erweiterte Formeldateien geprüft:
