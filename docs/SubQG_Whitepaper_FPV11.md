@@ -173,25 +173,28 @@ $$\langle A | B \rangle \equiv \frac{1}{|E|} \sum_e w_e^{(A)} w_e^{(B)} = 0.$$
 3. **Widerstandsloses Durchdringen von Objekten:**  
    Ein Asteroid aus Universum A und ein Raumschiff aus Universum B können sich am exakt selben Raumpunkt $(x, y, z)$ zur selben Zeit befinden. Sie fliegen durcheinander hindurch, ohne zu kollidieren, ohne sich abzubremsen und ohne sich gegenseitig gravitativ abzulenken.
 
-## 6.3 Das transiente Aufbrechen der Orthogonalität: Mikroskopischer Phasen-Glitch & Durchtunnelung
+## 6.3 Das transiente Aufbrechen der Orthogonalität: Exakter kompakter Glitch & Block-Hamiltonian
 
-Ein faszinierendes theoretisches Phänomen tritt auf, wenn für ein ultrakurzes Zeitintervall $\Delta t$ (z. B. eine Mikrosekunde) ein mikroskopischer Glitch im fundamentalen Phasenraum der Subquanten-Oszillatoren auftritt:
+Für eine mathematisch konsistente Behandlung einer transienten Brücke zwischen zwei sonst entkoppelten Sektoren $A$ und $B$ müssen drei Bedingungen strikt erfüllt sein:
 
-1. **Die transiente Störungsfunktion:**  
-   Die Phasendifferenz zwischen den Moden $A$ und $B$ weicht vorübergehend von der strikten Orthogonalität $\Delta\theta = \pi/2$ ab:
-   $$\Delta \theta(t) = \frac{\pi}{2} - \varepsilon(t), \qquad \varepsilon(t) = \varepsilon_{\max} \, e^{-\frac{(t - t_{\mathrm{mid}})^2}{2 \tau^2}}.$$
-   Die FPV1-Überlappung zwischen beiden Universen wird dadurch transient positiv:
-   $$w_{AB}(t) = \frac{1 + \cos(\Delta\theta(t))}{2} = \frac{1 + \sin(\varepsilon(t))}{2} \approx \frac{1}{2}\sin(\varepsilon(t)) > 0.$$
-2. **Quantitatives Durchtunneln von Strahlung:**  
-   In der Wellendynamik entsteht für die Dauer des Glitches ein linearer Tunnelterm:
-   $$i \frac{d\Psi_u^{(A)}}{dt} = (H_A \Psi^{(A)})_u + J_{\mathrm{tunnel}} \, w_{AB}(t) \, \Psi_u^{(B)}.$$
-   Befindet sich in Welt B an dieser Stelle eine intensive Licht- oder Energiequelle $\Psi^{(B)}$, tunnelt eine reale Amplitude $\Delta \Psi^{(A)} \sim J_{\mathrm{tunnel}} w_{AB} \Delta t \, \Psi^{(B)}$ nach Welt A über. Nach dem Abklingen des Glitches ($w_{AB} \to 0$) reißt die Brücke ab, doch die übergetretene Energie breitet sich als sphärische elektromagnetische Wellenfront in Welt A aus.
-3. **Kreuz-Gravitationsschock (Transiente Kantenkontraktion):**  
-   In der Kantenmetrik von Welt A wird für die Dauer des Glitches die Massendichte $\rho_B$ als Quellterm wirksam:
-   $$(\mu \mathbb{I} + \kappa \mathcal{L}_{\mathrm{edge}}) x_e^{(A)} = -\beta \left( w_e^{(A)} \rho_e^{(A)} + w_{AB}(t) \rho_e^{(B)} \right).$$
-   Die Kanten $x_e^{(A)}$ kontrahieren schlagartig ($\Delta x_e^{(A)} < 0$), wodurch ein Testkörper in Welt A für einen Wimpernschlag einen gewaltigen mechanischen Gravitationskraftstoß $\Delta \mathbf{P} \propto \beta w_{AB} \nabla \rho_B \Delta t$ in Richtung des fremden Massenschwerpunkts erfährt.
-4. **Kausale Begrenzung & Selbstheilung des Graphen:**  
-   Die Lieb-Robinson-Grenzgeschwindigkeit $c = 2 J_0 L_0$ verhindert ein unkontrolliertes Ausufern: Die Störung bleibt streng auf den Kausalkegel $R \le c \Delta t$ begrenzt. Die Kantensteifigkeit $\kappa$ glättet das Netzwerk nach dem Schließen der Brücke sofort wieder elastisch ein (Verifikation im Modul `subqg_glitch_tunneling.mjs`).
+1. **Verschwindende Ausgangskopplung via quadratischem Überlapp:**  
+   Die Kopplung darf bei ungestörter Orthogonalität ($\varepsilon = 0$) nicht bei $\frac{1}{2}$ verharren, sondern muss exakt null sein. Bei normierten Sektorzuständen mit $\langle A|B \rangle = \cos\Delta\theta = \cos(\pi/2 - \varepsilon) = \sin\varepsilon$ lautet die physikalische Übergangskopplung:
+   $$w_{AB}(t) = |\langle A|B \rangle|^2 = \cos^2\Delta\theta(t) = \sin^2\varepsilon(t).$$
+   Damit gilt bei $\varepsilon = 0$ exakt $w_{AB} = 0$.
+2. **Kompakter Träger für exaktes Öffnen und Schließen:**  
+   Eine Gaußfunktion besitzt unendliche Ausläufer. Für ein zeitlich scharf begrenztes Fenster $t \in [t_{\mathrm{mid}} - \tau, \, t_{\mathrm{mid}} + \tau]$ wird eine glatte Testfunktion mit kompaktem Träger $C_c^\infty$ ($s = \frac{t - t_{\mathrm{mid}}}{\tau}$) definiert:
+   $$f_{\mathrm{bump}}(s) = \begin{cases} \exp\!\left(1 - \frac{1}{1 - s^2}\right) & \text{für } |s| < 1, \\ 0 & \text{für } |s| \ge 1, \end{cases} \qquad \varepsilon(t) = \varepsilon_{\max} \, f_{\mathrm{bump}}\!\left(\frac{t - t_{\mathrm{mid}}}{\tau}\right).$$
+   Vor $t_{\mathrm{mid}} - \tau$ und nach $t_{\mathrm{mid}} + \tau$ ist die Brücke mathematisch identisch null ($w_{AB}(t) \equiv 0$).
+3. **Selbstadjungierter 2x2 Block-Hamiltonian & Gesamtnorm-Erhaltung:**  
+   Die gekoppelte Zeitentwicklung gehorcht dem hermiteschen Gesamt-Operator:
+   $$i \frac{d}{dt} \begin{pmatrix} \Psi_A \\ \Psi_B \end{pmatrix} = \begin{pmatrix} H_A & g(t) C \\ g(t) C^\dagger & H_B \end{pmatrix} \begin{pmatrix} \Psi_A \\ \Psi_B \end{pmatrix}, \qquad g(t) = J_{\mathrm{tunnel}} \, w_{AB}(t) \in \mathbb{R}, \quad C = C^\dagger = \mathbb{I}.$$
+   Da $H(t) = H^\dagger(t)$ für alle $t$ selbstadjungiert ist, folgt zwingend die **strikte Erhaltung der Gesamtnorm** (Summe beider Universen):
+   $$\frac{d}{dt} N_{\mathrm{total}}(t) = \frac{d}{dt} \left( \|\Psi_A(t)\|^2 + \|\Psi_B(t)\|^2 \right) = 0.$$
+   Während des Glitches findet ein realer Austausch statt ($N_B \to N_A$).
+4. **Energie-Arbeits-Bilanz des Glitches:**  
+   Bei zeitabhängiger Kopplung $g(t)$ gilt für den Energieerwartungswert:
+   $$\frac{d}{dt} \langle H(t) \rangle = \langle \partial_t H(t) \rangle = 2 \, \dot{g}(t) \, \mathrm{Re}\langle \Psi_A(t) | \Psi_B(t) \rangle.$$
+   Die Änderung der Gesamtenergie $\Delta E_{\mathrm{total}} = \int_0^T P_{\mathrm{glitch}}(t) \, dt$ entspricht exakt der mechanisch-topologischen Arbeit, die durch das Öffnen und Schließen des Glitches in das System investiert wird (Verifikation im Modul `subqg_exact_glitch_tunneling.mjs`).
 
 ---
 

@@ -560,16 +560,23 @@
         }
       }
 
-      // 1. Berechnung des transienten Glitch-Verlaufs
+      // 1. Berechnung des transienten Glitch-Verlaufs mit kompaktem Träger und quadratischem Überlapp
       if (glitchState.active) {
         glitchState.timer += delta;
         const progress = glitchState.timer / glitchState.duration;
 
-        // Gaußförmige Phasenabweichung epsilon(t)
-        const tau = 0.28;
-        const tRel = progress - 0.35;
-        glitchState.epsilon = 0.85 * Math.exp(-(tRel * tRel) / (2.0 * tau * tau));
-        glitchState.wAB = 0.5 * Math.sin(glitchState.epsilon);
+        // Kompakte Bump-Funktion f_bump in [-1, 1]
+        const s = (progress - 0.5) / 0.45;
+        if (Math.abs(s) < 1.0) {
+          const oneMinusS2 = 1.0 - s * s;
+          const bump = Math.exp(1.0 - 1.0 / oneMinusS2);
+          glitchState.epsilon = 0.55 * bump;
+          // Quadratischer Überlapp w_AB = sin^2(epsilon) -> exakt 0 bei epsilon=0!
+          glitchState.wAB = Math.pow(Math.sin(glitchState.epsilon), 2);
+        } else {
+          glitchState.epsilon = 0.0;
+          glitchState.wAB = 0.0;
+        }
 
         if (progress >= 1.0) {
           glitchState.active = false;
