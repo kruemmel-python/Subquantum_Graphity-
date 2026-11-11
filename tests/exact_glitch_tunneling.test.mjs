@@ -64,3 +64,39 @@ test('SubQG Exact Glitch: Selbstadjungierter Block-Hamiltonian erhält Gesamtnor
   // 3. Schwerkraft-Kreuzimpuls auf Welt A während des Glitches
   assert.ok(res.peakCrossForce > 0.001, `Transiente Kreuzbeschleunigung: ${res.peakCrossForce}`);
 });
+
+test('SubQG Exact Glitch: Vollständige Arbeits- und Leistungsbilanz (Tunnel + Metrik)', () => {
+  const engine = new SubQGExactGlitchEngine({
+    glitchTimeMid: 2.0,
+    glitchHalfWidth: 0.5,
+    epsilonMax: 0.45,
+    jTunnel: 0.75
+  });
+
+  const res = engine.simulateGlitchCrossing({ steps: 250, dt: 0.02 });
+
+  // 1. Integrierte Glitch-Arbeit besteht aus Tunnel- und Metrikanteil
+  assert.ok(res.integratedTunnelPower > 0, `Tunnelarbeit positiv: ${res.integratedTunnelPower}`);
+  assert.ok(res.integratedMetricPower > 0, `Metrik-Verzerrungsarbeit positiv: ${res.integratedMetricPower}`);
+  assert.ok(
+    Math.abs(res.integratedGlitchPower - (res.integratedTunnelPower + res.integratedMetricPower)) < 1e-12,
+    'Gesamtarbeit entspricht exakt der Summe aus Tunnel- und Metrikarbeit'
+  );
+
+  // 2. Vor dem Glitch (t < 1.5) und nach dem Glitch (t > 2.5) wird absolut keine Arbeit eingespeist
+  const preGlitchSteps = res.history.filter((h) => h.t < 1.5);
+  for (const h of preGlitchSteps) {
+    assert.equal(Math.abs(h.glitchPower), 0.0, `Leistung vor Glitch bei t=${h.t} exakt 0`);
+    assert.equal(Math.abs(h.integratedGlitchPower), 0.0, `Integrierte Arbeit vor Glitch bei t=${h.t} exakt 0`);
+  }
+
+  const postGlitchSteps = res.history.filter((h) => h.t > 2.5);
+  const finalWork = res.integratedGlitchPower;
+  for (const h of postGlitchSteps) {
+    assert.equal(Math.abs(h.glitchPower), 0.0, `Leistung nach Glitch bei t=${h.t} exakt 0`);
+    assert.ok(
+      Math.abs(h.integratedGlitchPower - finalWork) < 1e-12,
+      `Integrierte Arbeit nach Glitch bleibt exakt konstant bei ${finalWork}`
+    );
+  }
+});

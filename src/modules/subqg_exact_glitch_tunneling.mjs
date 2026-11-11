@@ -55,7 +55,7 @@ export class SubQGExactGlitchEngine {
   /**
    * Berechnet den Glitch-Puls mit strikt kompaktem Träger (glatte Bump-Funktion).
    * @param {number} t
-   * @returns {{ epsilon: number, wAB: number, gTunnel: number, dGdt: number, isGlitchActive: boolean }}
+   * @returns {{ epsilon: number, wAB: number, gTunnel: number, dGdt: number, dWdt: number, isGlitchActive: boolean }}
    */
   computeGlitchCoupling(t) {
     const tau = this.glitchHalfWidth;
@@ -64,7 +64,7 @@ export class SubQGExactGlitchEngine {
 
     // Außerhalb des Intervalls [-tau, tau] ist die Kopplung EXAKT 0 (keine asymptotischen Gauß-Ausläufer!)
     if (Math.abs(s) >= 1.0) {
-      return { epsilon: 0.0, wAB: 0.0, gTunnel: 0.0, dGdt: 0.0, isGlitchActive: false };
+      return { epsilon: 0.0, wAB: 0.0, gTunnel: 0.0, dGdt: 0.0, dWdt: 0.0, isGlitchActive: false };
     }
 
     // Bump-Funktion f(s) = exp(1 - 1 / (1 - s^2)) in (0, 1]
@@ -90,26 +90,83 @@ export class SubQGExactGlitchEngine {
       wAB,
       gTunnel,
       dGdt,
+      dWdt: dW_dt,
       isGlitchActive: true
     };
   }
 
   /**
-   * Berechnet die Erwartungswerte des selbstadjungierten 2x2 Block-Hamiltonians:
-   * H(t) = [ H_A  g(t) I ]
-   *        [ g(t) I  H_B ]
+   * Berechnet das reale Skalarprodukt Re(<Psi_A | Psi_B>).
    */
-  computeBlockHamiltonianEnergies(psiARe, psiAIm, psiBRe, psiBIm, phiMetricA, phiMetricB, gTunnel) {
-    const obsA = this.worldA.measureObservables(psiARe, psiAIm, phiMetricA);
-    const obsB = this.worldB.measureObservables(psiBRe, psiBIm, phiMetricB);
+  _overlapRe(psiARe, psiAIm, psiBRe, psiBIm) {
+    let sum = 0.0;
+    for (let u = 0; u < this.N; u++) {
+      sum += psiARe[u] * psiBRe[u] + psiAIm[u] * psiBIm[u];
+    }
+    return sum;
+  }
+
+  /**
+   * Berechnet das metrische Kreuz-Wechselwirkungsintegral sum_e w_e * rho_B,e * x_A,e
+   * für die variationelle Arbeitsleistung partial S_edge,A / partial t.
+   */
+  _metricCrossInt(rhoB, xEdgeA) {
+    let sum = 0.0;
+    const M = this.N - 1;
+    for (let e = 0; e < M; e++) {
+      sum += this.worldA.weights[e] * rhoB[e] * xEdgeA[e];
+    }
+    return sum;
+  }
+
+  /**
+   * Löst die gekoppelten Metrikzustände für beide Sektoren konsistent zum momentanen Zustand
+   * und der Glitch-Kopplung w_AB.
+   */
+  _evaluateMetricState(psiARe, psiAIm, psiBRe, psiBIm, wAB, prevMetA = null, prevMetB = null) {
+    const rhoA = this.worldA.computeEdgeDensity(psiARe, psiAIm);
+    const rhoB = this.worldB.computeEdgeDensity(psiBRe, psiBIm);
+
+    const effectiveRhoSourceForA = new Float64Array(this.N - 1);
+    for (let e = 0; e < this.N - 1; e++) {
+      effectiveRhoSourceForA[e] = wAB * rhoB[e];
+    }
+
+    const metA = this.worldA.solveVariationalMetric({
+      rhoSourceEdge: effectiveRhoSourceForA,
+      rhoPacketEdge: rhoA,
+      initialX: prevMetA ? prevMetA.xEdge : null,
+      maxIter: prevMetA ? 350 : 4500
+    });
+
+    const metB = this.worldB.solveVariationalMetric({
+      rhoSourceEdge: rhoB,
+      initialX: prevMetB ? prevMetB.xEdge : null,
+      maxIter: prevMetB ? 350 : 4500
+    });
+
+    return { metA, metB, rhoA, rhoB };
+  }
+
+  /**
+   * Berechnet die Erwartungswerte des selbstadjungierten 2x2 Block-Hamiltonians inklusive
+   * vollständiger metrischer Deformationsenergie (S_edge[x_A] + S_edge[x_B]):
+   * H_joint(t) = E_Psi,A + E_Psi,B + E_cross(t) + S_edge[x_A] + S_edge[x_B]
+   */
+  computeBlockHamiltonianEnergies(psiARe, psiAIm, psiBRe, psiBIm, metA, metB, gTunnel) {
+    const phiMetricA = metA.phiMetric;
+    const phiMetricB = metB.phiMetric;
+    const sEdgeA = metA.edgeAction || 0.0;
+    const sEdgeB = metB.edgeAction || 0.0;
+
+    const obsA = this.worldA.measureObservables(psiARe, psiAIm, phiMetricA, sEdgeA);
+    const obsB = this.worldB.measureObservables(psiBRe, psiBIm, phiMetricB, sEdgeB);
 
     // Kreuz-Kopplungsenergie E_cross = 2 * g(t) * Re( <Psi_A | Psi_B> )
-    let crossOverlapRe = 0.0;
-    for (let u = 0; u < this.N; u++) {
-      crossOverlapRe += psiARe[u] * psiBRe[u] + psiAIm[u] * psiBIm[u];
-    }
+    const crossOverlapRe = this._overlapRe(psiARe, psiAIm, psiBRe, psiBIm);
     const eCross = 2.0 * gTunnel * crossOverlapRe;
-    const eTotal = obsA.eWaveIntrinsic + obsB.eWaveIntrinsic + eCross;
+    const eWaveTotal = obsA.eWaveIntrinsic + obsB.eWaveIntrinsic + eCross;
+    const eJointTotal = eWaveTotal + sEdgeA + sEdgeB;
     const nTotal = obsA.norm + obsB.norm;
 
     return {
@@ -118,14 +175,19 @@ export class SubQGExactGlitchEngine {
       nTotal,
       eA: obsA.eWaveIntrinsic,
       eB: obsB.eWaveIntrinsic,
+      sEdgeA,
+      sEdgeB,
       eCross,
-      eTotal,
+      eWaveTotal,
+      eTotal: eJointTotal,
       crossOverlapRe
     };
   }
 
   /**
-   * Führt die unitäre gekoppelte RK4-Integration der beiden Sektoren aus.
+   * Führt die unitäre gekoppelte RK4-Integration der beiden Sektoren aus,
+   * wobei alle Zwischenstufen k1..k4 die zeitabhängige Glitch-Kopplung g(t) und
+   * die rückgekoppelte variationelle Metrik konsistent auswerten.
    */
   simulateGlitchCrossing(opts = {}) {
     const steps = opts.steps ?? 300;
@@ -147,19 +209,19 @@ export class SubQGExactGlitchEngine {
     let psiBIm = new Float64Array(stateB.psiIm);
 
     const initGlitch = this.computeGlitchCoupling(0.0);
-    const rhoB0 = this.worldB.computeEdgeDensity(psiBRe, psiBIm);
-    const metB0 = this.worldB.solveVariationalMetric({ rhoSourceEdge: rhoB0 });
-    const metA0 = this.worldA.solveVariationalMetric({ betaOverride: 0.0 });
+    let currentMetrics = this._evaluateMetricState(psiARe, psiAIm, psiBRe, psiBIm, initGlitch.wAB);
 
     const initH = this.computeBlockHamiltonianEnergies(
       psiARe, psiAIm, psiBRe, psiBIm,
-      metA0.phiMetric, metB0.phiMetric, initGlitch.gTunnel
+      currentMetrics.metA, currentMetrics.metB, initGlitch.gTunnel
     );
 
     const initialTotalNorm = initH.nTotal;
     const initialTotalEnergy = initH.eTotal;
 
     let integratedGlitchPower = 0.0;
+    let integratedTunnelPower = 0.0;
+    let integratedMetricPower = 0.0;
     let peakTunnelCoupling = 0.0;
     let peakCrossForce = 0.0;
 
@@ -170,27 +232,26 @@ export class SubQGExactGlitchEngine {
       const glitch = this.computeGlitchCoupling(t);
       if (glitch.wAB > peakTunnelCoupling) peakTunnelCoupling = glitch.wAB;
 
-      const rhoA = this.worldA.computeEdgeDensity(psiARe, psiAIm);
-      const rhoB = this.worldB.computeEdgeDensity(psiBRe, psiBIm);
-
-      // Kantenmetrik Welt A: (mu I + kappa L) x_A = -beta (w_A rho_A + w_AB(t) rho_B)
-      const effectiveRhoSourceForA = new Float64Array(this.N - 1);
-      for (let e = 0; e < this.N - 1; e++) {
-        effectiveRhoSourceForA[e] = glitch.wAB * rhoB[e];
-      }
-      const metA = this.worldA.solveVariationalMetric({
-        rhoSourceEdge: effectiveRhoSourceForA,
-        rhoPacketEdge: rhoA
-      });
-      const metB = this.worldB.solveVariationalMetric({ rhoSourceEdge: rhoB });
+      currentMetrics = this._evaluateMetricState(
+        psiARe, psiAIm, psiBRe, psiBIm, glitch.wAB,
+        currentMetrics.metA, currentMetrics.metB
+      );
+      const metA = currentMetrics.metA;
+      const metB = currentMetrics.metB;
 
       const hStats = this.computeBlockHamiltonianEnergies(
         psiARe, psiAIm, psiBRe, psiBIm,
-        metA.phiMetric, metB.phiMetric, glitch.gTunnel
+        metA, metB, glitch.gTunnel
       );
 
-      // Momentane Arbeitsleistung des Glitches: P_glitch = <partial_t H> = 2 * (dg/dt) * Re(<Psi_A|Psi_B>)
-      const glitchPower = 2.0 * glitch.dGdt * hStats.crossOverlapRe;
+      // Vollständige Momentanleistung des Glitches:
+      // P_total = P_tunnel + P_metric
+      // P_tunnel = 2 * (dg/dt) * Re(<Psi_A|Psi_B>)
+      // P_metric = (dw_AB/dt) * beta * sum_e w_e * rho_B,e * x_A,e
+      const metricCrossInt = this._metricCrossInt(currentMetrics.rhoB, metA.xEdge);
+      const tunnelPower = 2.0 * glitch.dGdt * hStats.crossOverlapRe;
+      const metricPower = glitch.dWdt * this.beta * metricCrossInt;
+      const glitchPower = tunnelPower + metricPower;
 
       // Kreuzkraft auf Welt A
       const centerNode = Math.round(centerB);
@@ -205,32 +266,47 @@ export class SubQGExactGlitchEngine {
         wAB: glitch.wAB,
         gTunnel: glitch.gTunnel,
         dGdt: glitch.dGdt,
+        dWdt: glitch.dWdt,
         isGlitchActive: glitch.isGlitchActive,
         normA: hStats.normA,
         normB: hStats.normB,
         nTotal: hStats.nTotal,
         eA: hStats.eA,
         eB: hStats.eB,
+        sEdgeA: hStats.sEdgeA,
+        sEdgeB: hStats.sEdgeB,
         eCross: hStats.eCross,
+        eWaveTotal: hStats.eWaveTotal,
         eTotal: hStats.eTotal,
+        tunnelPower,
+        metricPower,
         glitchPower,
         integratedGlitchPower,
         crossAcc
       });
 
       if (step < steps) {
-        // Hermitescher RK4-Schritt für das gekoppelte Block-System [Psi_A, Psi_B]
-        const nextState = this._stepBlockRK4(
+        // Konsistenter 4-Stufen RK4-Schritt mit zeit- und zustandsabhängiger Metrik- und Kopplungsauswertung
+        const rkResult = this._stepBlockRK4(
           psiARe, psiAIm, psiBRe, psiBIm,
-          metA.phiMetric, metB.phiMetric,
-          glitch.gTunnel, dt
+          t, dt, metA, metB
         );
-        psiARe = nextState.psiARe;
-        psiAIm = nextState.psiAIm;
-        psiBRe = nextState.psiBRe;
-        psiBIm = nextState.psiBIm;
+        psiARe = rkResult.psiARe;
+        psiAIm = rkResult.psiAIm;
+        psiBRe = rkResult.psiBRe;
+        psiBIm = rkResult.psiBIm;
+        currentMetrics.metA = rkResult.metA;
+        currentMetrics.metB = rkResult.metB;
 
-        integratedGlitchPower += glitchPower * dt;
+        // 4th-Order Quadratur (Simpson / RK-Gewichte) für die geleistete Glitch-Arbeit
+        const sp = rkResult.stagePowers;
+        const stepTunnelWork = (dt / 6.0) * (sp.pTunnel1 + 2.0 * sp.pTunnel2 + 2.0 * sp.pTunnel3 + sp.pTunnel4);
+        const stepMetricWork = (dt / 6.0) * (sp.pMetric1 + 2.0 * sp.pMetric2 + 2.0 * sp.pMetric3 + sp.pMetric4);
+        const stepTotalWork = stepTunnelWork + stepMetricWork;
+
+        integratedTunnelPower += stepTunnelWork;
+        integratedMetricPower += stepMetricWork;
+        integratedGlitchPower += stepTotalWork;
       }
     }
 
@@ -249,8 +325,10 @@ export class SubQGExactGlitchEngine {
       finalTotalEnergy: finalH.eTotal,
       deltaTotalEnergy,
       integratedGlitchPower,
+      integratedTunnelPower,
+      integratedMetricPower,
       energyWorkDiscrepancy,
-      isEnergyWorkBalanced: energyWorkDiscrepancy < 0.05, // Numerischer RK4-Rest
+      isEnergyWorkBalanced: energyWorkDiscrepancy < 0.05,
 
       peakTunnelCoupling,
       peakCrossForce,
@@ -297,49 +375,82 @@ export class SubQGExactGlitchEngine {
     }
   }
 
-  _stepBlockRK4(psiARe, psiAIm, psiBRe, psiBIm, phiA, phiB, gTunnel, dt) {
+  /**
+   * 4-stufiger Runge-Kutta Integrator für das zeitabhängige gekoppelte 2-Sektoren-System.
+   * Bewertet g(t) an den Stufen t, t + dt/2, t + dt und aktualisiert die variationelle Metrik.
+   */
+  _stepBlockRK4(psiARe, psiAIm, psiBRe, psiBIm, t, dt, prevMetA, prevMetB) {
     const N = this.N;
+    const halfDt = 0.5 * dt;
+
+    // Stufe 1: t
+    const g1 = this.computeGlitchCoupling(t);
+    const m1 = this._evaluateMetricState(psiARe, psiAIm, psiBRe, psiBIm, g1.wAB, prevMetA, prevMetB);
     const k1ARe = new Float64Array(N), k1AIm = new Float64Array(N);
     const k1BRe = new Float64Array(N), k1BIm = new Float64Array(N);
+    this._computeBlockRhs(psiARe, psiAIm, psiBRe, psiBIm, m1.metA.phiMetric, m1.metB.phiMetric, g1.gTunnel, k1ARe, k1AIm, k1BRe, k1BIm);
+
+    const ov1 = this._overlapRe(psiARe, psiAIm, psiBRe, psiBIm);
+    const pTunnel1 = 2.0 * g1.dGdt * ov1;
+    const pMetric1 = g1.dWdt * this.beta * this._metricCrossInt(m1.rhoB, m1.metA.xEdge);
+
+    // Stufe 2: t + dt/2 mit k1
+    const t2 = t + halfDt;
+    const g2 = this.computeGlitchCoupling(t2);
+    const tmp2ARe = new Float64Array(N), tmp2AIm = new Float64Array(N);
+    const tmp2BRe = new Float64Array(N), tmp2BIm = new Float64Array(N);
+    for (let u = 0; u < N; u++) {
+      tmp2ARe[u] = psiARe[u] + halfDt * k1ARe[u];
+      tmp2AIm[u] = psiAIm[u] + halfDt * k1AIm[u];
+      tmp2BRe[u] = psiBRe[u] + halfDt * k1BRe[u];
+      tmp2BIm[u] = psiBIm[u] + halfDt * k1BIm[u];
+    }
+    const m2 = this._evaluateMetricState(tmp2ARe, tmp2AIm, tmp2BRe, tmp2BIm, g2.wAB, m1.metA, m1.metB);
     const k2ARe = new Float64Array(N), k2AIm = new Float64Array(N);
     const k2BRe = new Float64Array(N), k2BIm = new Float64Array(N);
+    this._computeBlockRhs(tmp2ARe, tmp2AIm, tmp2BRe, tmp2BIm, m2.metA.phiMetric, m2.metB.phiMetric, g2.gTunnel, k2ARe, k2AIm, k2BRe, k2BIm);
+
+    const ov2 = this._overlapRe(tmp2ARe, tmp2AIm, tmp2BRe, tmp2BIm);
+    const pTunnel2 = 2.0 * g2.dGdt * ov2;
+    const pMetric2 = g2.dWdt * this.beta * this._metricCrossInt(m2.rhoB, m2.metA.xEdge);
+
+    // Stufe 3: t + dt/2 mit k2
+    const tmp3ARe = new Float64Array(N), tmp3AIm = new Float64Array(N);
+    const tmp3BRe = new Float64Array(N), tmp3BIm = new Float64Array(N);
+    for (let u = 0; u < N; u++) {
+      tmp3ARe[u] = psiARe[u] + halfDt * k2ARe[u];
+      tmp3AIm[u] = psiAIm[u] + halfDt * k2AIm[u];
+      tmp3BRe[u] = psiBRe[u] + halfDt * k2BRe[u];
+      tmp3BIm[u] = psiBIm[u] + halfDt * k2BIm[u];
+    }
+    const m3 = this._evaluateMetricState(tmp3ARe, tmp3AIm, tmp3BRe, tmp3BIm, g2.wAB, m2.metA, m2.metB);
     const k3ARe = new Float64Array(N), k3AIm = new Float64Array(N);
     const k3BRe = new Float64Array(N), k3BIm = new Float64Array(N);
+    this._computeBlockRhs(tmp3ARe, tmp3AIm, tmp3BRe, tmp3BIm, m3.metA.phiMetric, m3.metB.phiMetric, g2.gTunnel, k3ARe, k3AIm, k3BRe, k3BIm);
+
+    const ov3 = this._overlapRe(tmp3ARe, tmp3AIm, tmp3BRe, tmp3BIm);
+    const pTunnel3 = 2.0 * g2.dGdt * ov3;
+    const pMetric3 = g2.dWdt * this.beta * this._metricCrossInt(m3.rhoB, m3.metA.xEdge);
+
+    // Stufe 4: t + dt mit k3
+    const t4 = t + dt;
+    const g4 = this.computeGlitchCoupling(t4);
+    const tmp4ARe = new Float64Array(N), tmp4AIm = new Float64Array(N);
+    const tmp4BRe = new Float64Array(N), tmp4BIm = new Float64Array(N);
+    for (let u = 0; u < N; u++) {
+      tmp4ARe[u] = psiARe[u] + dt * k3ARe[u];
+      tmp4AIm[u] = psiAIm[u] + dt * k3AIm[u];
+      tmp4BRe[u] = psiBRe[u] + dt * k3BRe[u];
+      tmp4BIm[u] = psiBIm[u] + dt * k3BIm[u];
+    }
+    const m4 = this._evaluateMetricState(tmp4ARe, tmp4AIm, tmp4BRe, tmp4BIm, g4.wAB, m3.metA, m3.metB);
     const k4ARe = new Float64Array(N), k4AIm = new Float64Array(N);
     const k4BRe = new Float64Array(N), k4BIm = new Float64Array(N);
+    this._computeBlockRhs(tmp4ARe, tmp4AIm, tmp4BRe, tmp4BIm, m4.metA.phiMetric, m4.metB.phiMetric, g4.gTunnel, k4ARe, k4AIm, k4BRe, k4BIm);
 
-    const tmpARe = new Float64Array(N), tmpAIm = new Float64Array(N);
-    const tmpBRe = new Float64Array(N), tmpBIm = new Float64Array(N);
-
-    // K1
-    this._computeBlockRhs(psiARe, psiAIm, psiBRe, psiBIm, phiA, phiB, gTunnel, k1ARe, k1AIm, k1BRe, k1BIm);
-
-    // K2
-    for (let u = 0; u < N; u++) {
-      tmpARe[u] = psiARe[u] + 0.5 * dt * k1ARe[u];
-      tmpAIm[u] = psiAIm[u] + 0.5 * dt * k1AIm[u];
-      tmpBRe[u] = psiBRe[u] + 0.5 * dt * k1BRe[u];
-      tmpBIm[u] = psiBIm[u] + 0.5 * dt * k1BIm[u];
-    }
-    this._computeBlockRhs(tmpARe, tmpAIm, tmpBRe, tmpBIm, phiA, phiB, gTunnel, k2ARe, k2AIm, k2BRe, k2BIm);
-
-    // K3
-    for (let u = 0; u < N; u++) {
-      tmpARe[u] = psiARe[u] + 0.5 * dt * k2ARe[u];
-      tmpAIm[u] = psiAIm[u] + 0.5 * dt * k2AIm[u];
-      tmpBRe[u] = psiBRe[u] + 0.5 * dt * k2BRe[u];
-      tmpBIm[u] = psiBIm[u] + 0.5 * dt * k2BIm[u];
-    }
-    this._computeBlockRhs(tmpARe, tmpAIm, tmpBRe, tmpBIm, phiA, phiB, gTunnel, k3ARe, k3AIm, k3BRe, k3BIm);
-
-    // K4
-    for (let u = 0; u < N; u++) {
-      tmpARe[u] = psiARe[u] + dt * k3ARe[u];
-      tmpAIm[u] = psiAIm[u] + dt * k3AIm[u];
-      tmpBRe[u] = psiBRe[u] + dt * k3BRe[u];
-      tmpBIm[u] = psiBIm[u] + dt * k3BIm[u];
-    }
-    this._computeBlockRhs(tmpARe, tmpAIm, tmpBRe, tmpBIm, phiA, phiB, gTunnel, k4ARe, k4AIm, k4BRe, k4BIm);
+    const ov4 = this._overlapRe(tmp4ARe, tmp4AIm, tmp4BRe, tmp4BIm);
+    const pTunnel4 = 2.0 * g4.dGdt * ov4;
+    const pMetric4 = g4.dWdt * this.beta * this._metricCrossInt(m4.rhoB, m4.metA.xEdge);
 
     const nextARe = new Float64Array(N), nextAIm = new Float64Array(N);
     const nextBRe = new Float64Array(N), nextBIm = new Float64Array(N);
@@ -352,6 +463,17 @@ export class SubQGExactGlitchEngine {
       nextBIm[u] = psiBIm[u] + c * (k1BIm[u] + 2.0 * k2BIm[u] + 2.0 * k3BIm[u] + k4BIm[u]);
     }
 
-    return { psiARe: nextARe, psiAIm: nextAIm, psiBRe: nextBRe, psiBIm: nextBIm };
+    return {
+      psiARe: nextARe,
+      psiAIm: nextAIm,
+      psiBRe: nextBRe,
+      psiBIm: nextBIm,
+      metA: m4.metA,
+      metB: m4.metB,
+      stagePowers: {
+        pTunnel1, pTunnel2, pTunnel3, pTunnel4,
+        pMetric1, pMetric2, pMetric3, pMetric4
+      }
+    };
   }
 }

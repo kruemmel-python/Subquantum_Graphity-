@@ -181,20 +181,24 @@ Für eine mathematisch konsistente Behandlung einer transienten Brücke zwischen
    Die Kopplung darf bei ungestörter Orthogonalität ($\varepsilon = 0$) nicht bei $\frac{1}{2}$ verharren, sondern muss exakt null sein. Bei normierten Sektorzuständen mit $\langle A|B \rangle = \cos\Delta\theta = \cos(\pi/2 - \varepsilon) = \sin\varepsilon$ lautet die physikalische Übergangskopplung:
    $$w_{AB}(t) = |\langle A|B \rangle|^2 = \cos^2\Delta\theta(t) = \sin^2\varepsilon(t).$$
    Damit gilt bei $\varepsilon = 0$ exakt $w_{AB} = 0$.
-2. **Kompakter Träger für exaktes Öffnen und Schließen:**  
+2. **Kompakter Träger für exaktes Öffnen und Schließen & bewiesene $C^\infty$-Glattheit:**  
    Eine Gaußfunktion besitzt unendliche Ausläufer. Für ein zeitlich scharf begrenztes Fenster $t \in [t_{\mathrm{mid}} - \tau, \, t_{\mathrm{mid}} + \tau]$ wird eine glatte Testfunktion mit kompaktem Träger $C_c^\infty$ ($s = \frac{t - t_{\mathrm{mid}}}{\tau}$) definiert:
-   $$f_{\mathrm{bump}}(s) = \begin{cases} \exp\!\left(1 - \frac{1}{1 - s^2}\right) & \text{für } |s| < 1, \\ 0 & \text{für } |s| \ge 1, \end{cases} \qquad \varepsilon(t) = \varepsilon_{\max} \, f_{\mathrm{bump}}\!\left(\frac{t - t_{\mathrm{mid}}}{\tau}\right).$$
-   Vor $t_{\mathrm{mid}} - \tau$ und nach $t_{\mathrm{mid}} + \tau$ ist die Brücke mathematisch identisch null ($w_{AB}(t) \equiv 0$).
+   $$f_{\mathrm{bump}}(s) = \begin{cases} \exp\!\left(1 - \frac{1}{1 - s^2}\right) = e \cdot \mathrm{expNegInvGlue}(1 - s^2) & \text{für } |s| < 1, \\ 0 & \text{für } |s| \ge 1, \end{cases} \qquad \varepsilon(t) = \varepsilon_{\max} \, f_{\mathrm{bump}}\!\left(\frac{t - t_{\mathrm{mid}}}{\tau}\right).$$
+   Vor $t_{\mathrm{mid}} - \tau$ und nach $t_{\mathrm{mid}} + \tau$ ist die Brücke mathematisch identisch null ($w_{AB}(t) \equiv 0$). In Lean 4 ist über Mathlibs `expNegInvGlue` formal bewiesen, dass $f_{\mathrm{bump}}$ auf ganz $\mathbb{R}$ unendlich oft differenzierbar ist (`ContDiff ℝ n` für beliebige $n \le \infty$).
 3. **Selbstadjungierter 2x2 Block-Hamiltonian & Gesamtnorm-Erhaltung:**  
    Die gekoppelte Zeitentwicklung gehorcht dem hermiteschen Gesamt-Operator:
    $$i \frac{d}{dt} \begin{pmatrix} \Psi_A \\ \Psi_B \end{pmatrix} = \begin{pmatrix} H_A & g(t) C \\ g(t) C^\dagger & H_B \end{pmatrix} \begin{pmatrix} \Psi_A \\ \Psi_B \end{pmatrix}, \qquad g(t) = J_{\mathrm{tunnel}} \, w_{AB}(t) \in \mathbb{R}, \quad C = C^\dagger = \mathbb{I}.$$
    Da $H(t) = H^\dagger(t)$ für alle $t$ selbstadjungiert ist, folgt zwingend die **strikte Erhaltung der Gesamtnorm** (Summe beider Universen):
    $$\frac{d}{dt} N_{\mathrm{total}}(t) = \frac{d}{dt} \left( \|\Psi_A(t)\|^2 + \|\Psi_B(t)\|^2 \right) = 0.$$
    Während des Glitches findet ein realer Austausch statt ($N_B \to N_A$).
-4. **Energie-Arbeits-Bilanz des Glitches:**  
-   Bei zeitabhängiger Kopplung $g(t)$ gilt für den Energieerwartungswert:
-   $$\frac{d}{dt} \langle H(t) \rangle = \langle \partial_t H(t) \rangle = 2 \, \dot{g}(t) \, \mathrm{Re}\langle \Psi_A(t) | \Psi_B(t) \rangle.$$
-   Die Änderung der Gesamtenergie $\Delta E_{\mathrm{total}} = \int_0^T P_{\mathrm{glitch}}(t) \, dt$ entspricht exakt der mechanisch-topologischen Arbeit, die durch das Öffnen und Schließen des Glitches in das System investiert wird (Verifikation im Modul `subqg_exact_glitch_tunneling.mjs`).
+4. **Vollständige Energie-Arbeits-Bilanz des Glitches (Tunneling + Metrikrückkopplung):**  
+   Der Gesamthamiltonian des gekoppelten SubQG-Multiversums umfasst Materie-, Tunnel- und variationelle Kantenmetrikenergien:
+   $$\mathcal{H}_{\mathrm{joint}}(t) = E_{\Psi,A} + E_{\Psi,B} + E_{\mathrm{cross}}(t) + S_{\mathrm{edge}}[x_A] + S_{\mathrm{edge}}[x_B], \qquad E_{\mathrm{cross}}(t) = 2 g(t) \operatorname{Re}\langle \Psi_A | \Psi_B \rangle.$$
+   Die zeitliche Änderung des Gesamtsystems setzt sich aus der Tunnelarbeit und der metrischen Gitterverzerrung zusammen:
+   $$\frac{d}{dt} \mathcal{H}_{\mathrm{joint}}(t) = P_{\mathrm{tunnel}}(t) + P_{\mathrm{metric}}(t) = 2 \, \dot{g}(t) \, \mathrm{Re}\langle \Psi_A(t) | \Psi_B(t) \rangle + \dot{w}_{AB}(t) \cdot \beta \sum_{e} w_e \rho_{B,e}(t) x_{A,e}(t).$$
+   Außerhalb des Glitchfensters gilt $P_{\mathrm{total}}(t) \equiv 0$ identisch; nach Schließen der Brücke bleibt $\mathcal{H}_{\mathrm{joint}}$ strikt konstant.
+5. **Konsistente 4-Stufen Runge-Kutta Integration:**  
+   Zur Vermeidung von Integrationsartefakten friert der RK4-Integrator die Kopplung nicht über den Schritt ein, sondern evaluiert $g(t)$ an allen Zwischenstufen $t, t + dt/2, t + dt$ und aktualisiert die variationelle Metrik konsistent an den Zwischenzuständen. Die geleistete Arbeit wird mittels Simpson-Quadratur mit 4th-Order-Genauigkeit integriert.
 
 ---
 
