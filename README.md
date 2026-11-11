@@ -55,6 +55,12 @@ developer/
 ├── LICENSE                   # MIT Open Source License
 ├── docs/
 │   └── SPECIFICATION_1.0.md  # Formal mathematical specification
+├── media/                    # Complete Scientific Audio & Video Assets
+│   ├── SubQG_Genesis_Simulation.mp4       # Genesis network percolation video
+│   ├── How_Spacetime_Builds_Itself.m4a    # Audio explanation of relational spacetime
+│   ├── SubQG_Genesis_Dokumentation_3D.mp4 # 3D documentary film (1080p, 24 FPS)
+│   ├── SubQG_Genesis_Dokumentation_3D.srt # Synchronized subtitles
+│   └── subqg_crystal_clear_verification.png
 ├── src/
 │   ├── index.mjs             # Unified public API facade & CLI entrypoint
 │   ├── index.d.ts            # Full TypeScript declaration file
