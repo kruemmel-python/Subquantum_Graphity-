@@ -99,4 +99,8 @@ test('SubQG Exact Glitch: Vollständige Arbeits- und Leistungsbilanz (Tunnel + M
       `Integrierte Arbeit nach Glitch bleibt exakt konstant bei ${finalWork}`
     );
   }
+
+  // 3. Exakte Energie-Arbeits-Bilanz (Hartree-bereinigt und Actio=Reactio)
+  assert.equal(res.isEnergyWorkBalanced, true, 'isEnergyWorkBalanced muss strikt true sein');
+  assert.ok(res.energyWorkDiscrepancy < 0.005, `Energie-Arbeits-Diskrepanz < 0.005: ${res.energyWorkDiscrepancy}`);
 });

@@ -48,8 +48,10 @@ export class SubQGExactGlitchEngine {
     this.epsilonMax = config.epsilonMax ?? 0.45;
     this.jTunnel = config.jTunnel ?? 0.75;
 
-    this.worldA = new SubQGAppleWorld({ ...config, N: this.N, seed: this.seed });
-    this.worldB = new SubQGAppleWorld({ ...config, N: this.N, seed: this.seed + 100 });
+    // Fundamentale emergente Kopplung ohne phänomenologischen Skalierungs-Eingriff:
+    // Im echten geschlossenen Zwei-Welten-System gilt exakt Actio = Reactio (backreactionScale = 1.0)
+    this.worldA = new SubQGAppleWorld({ ...config, N: this.N, seed: this.seed, backreactionScale: 1.0 });
+    this.worldB = new SubQGAppleWorld({ ...config, N: this.N, seed: this.seed + 100, backreactionScale: 1.0 });
   }
 
   /**
@@ -150,8 +152,9 @@ export class SubQGExactGlitchEngine {
 
   /**
    * Berechnet die Erwartungswerte des selbstadjungierten 2x2 Block-Hamiltonians inklusive
-   * vollständiger metrischer Deformationsenergie (S_edge[x_A] + S_edge[x_B]):
-   * H_joint(t) = E_Psi,A + E_Psi,B + E_cross(t) + S_edge[x_A] + S_edge[x_B]
+   * mathematisch konsistenter Hartree-Newton Feldenergie (ohne Selbstinteraktions-Doppelzählung):
+   * H_joint(t) = (E_wave,A - S_edge[x_A]) + (E_wave,B - S_edge[x_B]) + E_cross(t)
+   *            = (E_kin,A + E_NL,A + S_edge[x_A]) + (E_kin,B + E_NL,B + S_edge[x_B]) + E_cross(t)
    */
   computeBlockHamiltonianEnergies(psiARe, psiAIm, psiBRe, psiBIm, metA, metB, gTunnel) {
     const phiMetricA = metA.phiMetric;
@@ -165,8 +168,14 @@ export class SubQGExactGlitchEngine {
     // Kreuz-Kopplungsenergie E_cross = 2 * g(t) * Re( <Psi_A | Psi_B> )
     const crossOverlapRe = this._overlapRe(psiARe, psiAIm, psiBRe, psiBIm);
     const eCross = 2.0 * gTunnel * crossOverlapRe;
-    const eWaveTotal = obsA.eWaveIntrinsic + obsB.eWaveIntrinsic + eCross;
-    const eJointTotal = eWaveTotal + sEdgeA + sEdgeB;
+
+    // Physikalische Hartree-Newton Energie:
+    // obs.eWaveIntrinsic = E_kin + E_NL + E_metricInt = E_kin + E_NL + 2 * S_edge.
+    // Durch Subtraktion von S_edge erhalten wir exakt E_kin + E_NL + S_edge = E_kin + E_NL + 0.5 * E_metricInt,
+    // was die fundamentale Zweikörper-Selbstenergiedoppelzählung der Hartree-Theorie exakt bereinigt.
+    const hPhysA = obsA.eWaveIntrinsic - sEdgeA;
+    const hPhysB = obsB.eWaveIntrinsic - sEdgeB;
+    const eJointTotal = hPhysA + hPhysB + eCross;
     const nTotal = obsA.norm + obsB.norm;
 
     return {
@@ -175,10 +184,12 @@ export class SubQGExactGlitchEngine {
       nTotal,
       eA: obsA.eWaveIntrinsic,
       eB: obsB.eWaveIntrinsic,
+      hPhysA,
+      hPhysB,
       sEdgeA,
       sEdgeB,
       eCross,
-      eWaveTotal,
+      eWaveTotal: obsA.eWaveIntrinsic + obsB.eWaveIntrinsic + eCross,
       eTotal: eJointTotal,
       crossOverlapRe
     };
